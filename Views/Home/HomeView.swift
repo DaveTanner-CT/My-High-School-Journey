@@ -252,7 +252,7 @@ struct HomeView: View {
             tile(for: entry)
 
         case .compact(let first, let second):
-            HStack(alignment: .stretch, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
                 tile(for: first)
                     .frame(maxWidth: .infinity)
 
