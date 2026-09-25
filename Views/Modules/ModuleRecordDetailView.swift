@@ -59,6 +59,19 @@ struct ModuleRecordDetailView: View {
                 }
             }
 
+            Section {
+                AttachmentCollectionView(
+                    ownerType: AttachmentOwnerType.moduleRecord,
+                    ownerID: record.id,
+                    allowsPhotos: true,
+                    allowsFiles: true
+                )
+            } header: {
+                Text("Keepsakes")
+            } footer: {
+                Text("Save photos, certificates, programs, PDFs, or other files that help you remember this experience.")
+            }
+
             Section("Future Use") {
                 LabeledContent("Include in exports", value: record.includeInExports ? "Yes" : "No")
             }
@@ -95,6 +108,24 @@ struct ModuleRecordDetailView: View {
     }
 
     private func deleteRecord() {
+        let ownerID = record.id
+        let relatedPhotos = (try? modelContext.fetch(FetchDescriptor<PhotoAsset>())) ?? []
+        let ownedPhotos = relatedPhotos.filter {
+            $0.ownerType == AttachmentOwnerType.moduleRecord && $0.ownerID == ownerID
+        }
+
+        for photo in ownedPhotos {
+            PhotoStorageService.deleteFiles(
+                imageFilename: photo.imageFilename,
+                thumbnailFilename: photo.thumbnailFilename
+            )
+            modelContext.delete(photo)
+        }
+        FileAttachmentStorageService.deleteAll(
+            ownerType: AttachmentOwnerType.moduleRecord,
+            ownerID: ownerID
+        )
+
         modelContext.delete(record)
         do {
             try modelContext.save()

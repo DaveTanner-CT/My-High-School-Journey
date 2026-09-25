@@ -51,6 +51,20 @@ struct JourneyMomentDetailView: View {
                     detailBlock(title: "What I want to remember", text: moment.reflection)
                 }
 
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Files")
+                        .font(.headline)
+                    AttachmentCollectionView(
+                        ownerType: AttachmentOwnerType.journeyMoment,
+                        ownerID: moment.id,
+                        allowsPhotos: false,
+                        allowsFiles: true
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(.quaternary.opacity(0.28), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
                 HStack(spacing: 8) {
                     Image(systemName: moment.includeInExports ? "checkmark.circle.fill" : "minus.circle")
                     Text(moment.includeInExports ? "Available for future exports" : "Not included in future exports by default")

@@ -27,29 +27,29 @@ struct CustomCollectionView: View {
             } else {
                 List {
                     ForEach(items) { item in
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(item.title)
-                                .font(.headline)
+                        NavigationLink {
+                            CustomTileItemDetailView(
+                                item: item,
+                                tileTitle: tile?.title ?? "My Collection"
+                            )
+                        } label: {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(item.title)
+                                    .font(.headline)
 
-                            Text(item.itemDate, format: .dateTime.month(.abbreviated).day().year())
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            if !item.notes.isEmpty {
-                                Text(item.notes)
-                                    .font(.subheadline)
+                                Text(item.itemDate, format: .dateTime.month(.abbreviated).day().year())
+                                    .font(.caption)
                                     .foregroundStyle(.secondary)
-                            }
 
-                            if let url = URL(string: item.linkURL), !item.linkURL.isEmpty {
-                                Link(destination: url) {
-                                    Label("Open Link", systemImage: "arrow.up.right.square")
-                                        .font(.caption.weight(.semibold))
+                                if !item.notes.isEmpty {
+                                    Text(item.notes)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
                                 }
-                                .padding(.top, 2)
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
                     .onDelete(perform: deleteItems)
                 }

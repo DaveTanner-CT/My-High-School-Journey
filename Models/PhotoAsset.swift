@@ -72,6 +72,7 @@ extension JourneySchemaV2 {
     }
 }
 enum PhotoOwnerType {
-    static let journeyMoment = "journeyMoment"
-    static let customTileItem = "customTileItem"
+    static let journeyMoment = AttachmentOwnerType.journeyMoment
+    static let moduleRecord = AttachmentOwnerType.moduleRecord
+    static let customTileItem = AttachmentOwnerType.customTileItem
 }
