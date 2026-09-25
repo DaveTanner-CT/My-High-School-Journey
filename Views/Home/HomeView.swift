@@ -74,7 +74,9 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView {
+        let rows = tileRows
+
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: 18) {
                 header
                 quickAddButton
@@ -86,26 +88,8 @@ struct HomeView: View {
                 }
 
                 VStack(spacing: 14) {
-                    ForEach(tileRows.indices, id: \.self) { index in
-                        switch tileRows[index] {
-                        case .wide(let entry):
-                            tile(for: entry)
-
-                        case .compact(let first, let second):
-                            HStack(alignment: .stretch, spacing: 14) {
-                                tile(for: first)
-                                    .frame(maxWidth: .infinity)
-
-                                if let second {
-                                    tile(for: second)
-                                        .frame(maxWidth: .infinity)
-                                } else {
-                                    Color.clear
-                                        .frame(maxWidth: .infinity)
-                                        .accessibilityHidden(true)
-                                }
-                            }
-                        }
+                    ForEach(0..<rows.count, id: \.self) { index in
+                        tileRowView(rows[index])
                     }
                 }
             }
@@ -259,6 +243,29 @@ struct HomeView: View {
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func tileRowView(_ row: HomeTileRow) -> some View {
+        switch row {
+        case .wide(let entry):
+            tile(for: entry)
+
+        case .compact(let first, let second):
+            HStack(alignment: .stretch, spacing: 14) {
+                tile(for: first)
+                    .frame(maxWidth: .infinity)
+
+                if let second = second {
+                    tile(for: second)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
     }
 
     @ViewBuilder
