@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
+    @Environment(\.modelContext) private var modelContext
+
     @Query private var profiles: [StudentProfile]
     @Query private var preferences: [TilePreference]
     @Query private var customTiles: [CustomTile]
@@ -143,7 +145,7 @@ struct HomeView: View {
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.secondary)
 
-            Text("Keep building the story you'll want later.")
+            Text("Keep telling your story!")
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
@@ -255,15 +257,15 @@ struct HomeView: View {
     private func tileRowView(_ row: HomeTileRow) -> some View {
         switch row {
         case .wide(let entry):
-            tile(for: entry)
+            reorderableTile(for: entry)
 
         case .compact(let first, let second):
             HStack(alignment: .top, spacing: 14) {
-                tile(for: first)
+                reorderableTile(for: first)
                     .frame(maxWidth: .infinity)
 
                 if let second = second {
-                    tile(for: second)
+                    reorderableTile(for: second)
                         .frame(maxWidth: .infinity)
                 } else {
                     Color.clear
@@ -272,6 +274,16 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func reorderableTile(for entry: HomeTileEntry) -> some View {
+        tile(for: entry)
+            .draggable(entry.id)
+            .dropDestination(for: String.self) { droppedIDs, _ in
+                guard let sourceID = droppedIDs.first else { return false }
+                return moveTile(sourceID: sourceID, before: entry.id)
+            }
+            .accessibilityHint("Press and drag to rearrange this tile.")
     }
 
     @ViewBuilder
@@ -354,6 +366,78 @@ struct HomeView: View {
         return customItems.filter { $0.tileID == tile.id }.count
     }
 
+    @discardableResult
+    private func moveTile(sourceID: String, before targetID: String) -> Bool {
+        guard sourceID != targetID else { return false }
+
+        var reorderedVisible = visibleEntries
+        guard let sourceIndex = reorderedVisible.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = reorderedVisible.firstIndex(where: { $0.id == targetID }) else {
+            return false
+        }
+
+        let moving = reorderedVisible.remove(at: sourceIndex)
+        let insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+        reorderedVisible.insert(moving, at: max(0, insertionIndex))
+
+        let allEntries = allTileEntries
+        let visibleIDs = Set(reorderedVisible.map(\.id))
+        var reorderedIterator = reorderedVisible.makeIterator()
+        var merged: [HomeTileEntry] = []
+
+        for entry in allEntries {
+            if visibleIDs.contains(entry.id), let nextVisible = reorderedIterator.next() {
+                merged.append(nextVisible)
+            } else {
+                merged.append(entry)
+            }
+        }
+
+        for (index, entry) in merged.enumerated() {
+            switch entry.kind {
+            case .builtIn(let moduleID):
+                if let preference = preferences.first(where: { $0.moduleID == moduleID }) {
+                    preference.sortOrder = index
+                    preference.updatedAt = Date()
+                }
+            case .custom(let tileID):
+                if let tile = customTiles.first(where: { $0.id == tileID }) {
+                    tile.sortOrder = index
+                    tile.updatedAt = Date()
+                }
+            }
+        }
+
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private var allTileEntries: [HomeTileEntry] {
+        let builtIns = preferences.map {
+            HomeTileEntry(
+                id: "module:\($0.moduleID)",
+                sortOrder: $0.sortOrder,
+                kind: .builtIn(moduleID: $0.moduleID)
+            )
+        }
+
+        let customs = customTiles.map {
+            HomeTileEntry(
+                id: "custom:\($0.id.uuidString)",
+                sortOrder: $0.sortOrder,
+                kind: .custom(tileID: $0.id)
+            )
+        }
+
+        return (builtIns + customs).sorted {
+            if $0.sortOrder == $1.sortOrder { return $0.id < $1.id }
+            return $0.sortOrder < $1.sortOrder
+        }
+    }
 
 }
 
