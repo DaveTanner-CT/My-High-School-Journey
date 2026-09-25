@@ -8,6 +8,7 @@ struct HomeScreenSettingsView: View {
     @Query private var customTileItems: [CustomTileItem]
 
     @State private var showingAddTile = false
+    @AppStorage("homeTileDisplayMode") private var homeTileDisplayModeRaw = HomeTileDisplayMode.compact.rawValue
 
     private var rows: [HomeTileEntry] {
         let builtIns = preferences.map {
@@ -34,6 +35,20 @@ struct HomeScreenSettingsView: View {
 
     var body: some View {
         List {
+            Section {
+                Picker("Tile Size", selection: $homeTileDisplayModeRaw) {
+                    ForEach(HomeTileDisplayMode.allCases) { mode in
+                        Label(mode.title, systemImage: mode.systemImage)
+                            .tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Home Layout")
+            } footer: {
+                Text("Compact shows two square tiles across. Wide shows one full-width tile per row. All Home tiles use the same size until you change this setting.")
+            }
+
             Section {
                 ForEach(rows) { row in
                     rowView(row)

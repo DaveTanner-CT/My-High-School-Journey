@@ -10,6 +10,7 @@ struct HomeView: View {
     @Query(sort: \PhotoAsset.sortOrder) private var photoAssets: [PhotoAsset]
 
     @State private var showingQuickAdd = false
+    @AppStorage("homeTileDisplayMode") private var homeTileDisplayModeRaw = HomeTileDisplayMode.compact.rawValue
 
     private var preferredName: String {
         let trimmed = profiles.first?.preferredName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -47,30 +48,34 @@ struct HomeView: View {
         }
     }
 
+    private var displayMode: HomeTileDisplayMode {
+        HomeTileDisplayMode(rawValue: homeTileDisplayModeRaw) ?? .compact
+    }
+
     private var tileRows: [HomeTileRow] {
-        var rows: [HomeTileRow] = []
-        var pendingCompact: HomeTileEntry?
+        switch displayMode {
+        case .wide:
+            return visibleEntries.map { .wide($0) }
 
-        for entry in visibleEntries {
-            if isWide(entry) {
-                if let first = pendingCompact {
-                    rows.append(.compact(first: first, second: nil))
-                    pendingCompact = nil
+        case .compact:
+            var rows: [HomeTileRow] = []
+            var pending: HomeTileEntry?
+
+            for entry in visibleEntries {
+                if let first = pending {
+                    rows.append(.compact(first: first, second: entry))
+                    pending = nil
+                } else {
+                    pending = entry
                 }
-                rows.append(.wide(entry))
-            } else if let first = pendingCompact {
-                rows.append(.compact(first: first, second: entry))
-                pendingCompact = nil
-            } else {
-                pendingCompact = entry
             }
-        }
 
-        if let pendingCompact {
-            rows.append(.compact(first: pendingCompact, second: nil))
-        }
+            if let pending {
+                rows.append(.compact(first: pending, second: nil))
+            }
 
-        return rows
+            return rows
+        }
     }
 
     var body: some View {
@@ -276,7 +281,8 @@ struct HomeView: View {
                 NavigationLink(value: AppRoute.module(module.id)) {
                     ModuleTileView(
                         module: module,
-                        statusText: module.id == "journey" ? journeyStatusText : nil
+                        statusText: module.id == "journey" ? journeyStatusText : nil,
+                        displayMode: displayMode
                     )
                 }
                 .buttonStyle(.plain)
@@ -288,7 +294,8 @@ struct HomeView: View {
                     Link(destination: url) {
                         CustomTileCardView(
                             tile: tile,
-                            itemCount: customItemCount(for: tile)
+                            itemCount: customItemCount(for: tile),
+                            displayMode: displayMode
                         )
                     }
                     .buttonStyle(.plain)
@@ -296,7 +303,8 @@ struct HomeView: View {
                     NavigationLink(value: AppRoute.module(tile.targetModuleID)) {
                         CustomTileCardView(
                             tile: tile,
-                            itemCount: customItemCount(for: tile)
+                            itemCount: customItemCount(for: tile),
+                            displayMode: displayMode
                         )
                     }
                     .buttonStyle(.plain)
@@ -304,7 +312,8 @@ struct HomeView: View {
                     NavigationLink(value: AppRoute.customTile(tile.id)) {
                         CustomTileCardView(
                             tile: tile,
-                            itemCount: customItemCount(for: tile)
+                            itemCount: customItemCount(for: tile),
+                            displayMode: displayMode
                         )
                     }
                     .buttonStyle(.plain)
@@ -331,14 +340,6 @@ struct HomeView: View {
         return customItems.filter { $0.tileID == tile.id }.count
     }
 
-    private func isWide(_ entry: HomeTileEntry) -> Bool {
-        switch entry.kind {
-        case .builtIn(let moduleID):
-            return ModuleRegistry.module(id: moduleID)?.tileSize == .wide
-        case .custom(let tileID):
-            return customTiles.first(where: { $0.id == tileID })?.isWide ?? false
-        }
-    }
 
 }
 

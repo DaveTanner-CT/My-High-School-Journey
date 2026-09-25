@@ -3,9 +3,10 @@ import SwiftUI
 struct CustomTileCardView: View {
     let tile: CustomTile
     var itemCount: Int? = nil
+    var displayMode: HomeTileDisplayMode = .compact
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: displayMode == .compact ? 8 : 12) {
             HStack(alignment: .top) {
                 Image(systemName: tile.systemImage)
                     .font(.title2)
@@ -23,19 +24,22 @@ struct CustomTileCardView: View {
                 }
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 2)
 
             Text(tile.title)
                 .font(.headline)
                 .foregroundStyle(.primary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
 
             Text(tileSubtitle)
-                .font(.subheadline)
+                .font(displayMode == .compact ? .caption : .subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
-        .frame(maxWidth: .infinity, minHeight: tile.isWide ? 120 : 142, alignment: .leading)
-        .padding(18)
+        .padding(displayMode == .compact ? 14 : 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(CustomTileShapeModifier(displayMode: displayMode))
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -52,6 +56,20 @@ struct CustomTileCardView: View {
                 return "\(itemCount) \(itemCount == 1 ? "item" : "items") saved"
             }
             return "My collection"
+        }
+    }
+}
+
+private struct CustomTileShapeModifier: ViewModifier {
+    let displayMode: HomeTileDisplayMode
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch displayMode {
+        case .compact:
+            content.aspectRatio(1, contentMode: .fit)
+        case .wide:
+            content.frame(minHeight: 120)
         }
     }
 }
