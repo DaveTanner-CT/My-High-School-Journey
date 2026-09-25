@@ -3,13 +3,18 @@ import SwiftData
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+
+    @State private var selectedTab: RootTab = .home
+    @State private var lastContentTab: RootTab = .home
+    @State private var showingQuickAdd = false
     @State private var bootstrapError: String?
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 HomeView()
             }
+            .tag(RootTab.home)
             .tabItem {
                 Label("Home", systemImage: "house.fill")
             }
@@ -17,27 +22,43 @@ struct RootView: View {
             NavigationStack {
                 JourneyView()
             }
+            .tag(RootTab.journey)
             .tabItem {
                 Label("Journey", systemImage: "sparkles.rectangle.stack")
             }
 
+            Color.clear
+                .tag(RootTab.add)
+                .tabItem {
+                    Label("Add", systemImage: "plus.circle.fill")
+                }
+
             NavigationStack {
-                ModulePlaceholderView(
-                    title: "Trusted Resources",
-                    message: "Official national resources will live here and will also appear inside the modules where they are useful.",
-                    systemImage: "checkmark.seal.fill"
-                )
+                SearchView()
             }
+            .tag(RootTab.search)
             .tabItem {
-                Label("Resources", systemImage: "checkmark.seal.fill")
+                Label("Search", systemImage: "magnifyingglass")
             }
 
             NavigationStack {
                 SettingsView()
             }
+            .tag(RootTab.settings)
             .tabItem {
                 Label("Settings", systemImage: "gearshape.fill")
             }
+        }
+        .onChange(of: selectedTab) { _, newValue in
+            if newValue == .add {
+                selectedTab = lastContentTab
+                showingQuickAdd = true
+            } else {
+                lastContentTab = newValue
+            }
+        }
+        .sheet(isPresented: $showingQuickAdd) {
+            QuickAddView()
         }
         .task {
             do {
@@ -55,4 +76,12 @@ struct RootView: View {
             Text(bootstrapError ?? "Unknown error")
         }
     }
+}
+
+private enum RootTab: Hashable {
+    case home
+    case journey
+    case add
+    case search
+    case settings
 }

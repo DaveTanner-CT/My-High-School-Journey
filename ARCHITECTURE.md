@@ -72,3 +72,27 @@ Build 2 remains local-first. Do not enable CloudKit yet. We want to prove the ve
 Build 2 freezes each V1 `@Model` inside `JourneySchemaV1`. The rest of the app reaches those models through aliases in `Models/CurrentModelAliases.swift`.
 
 When V2 is needed, create V2 model definitions rather than editing V1 into the new shape. Then point the current aliases at V2 and define the migration stage. This is the key mechanism that keeps a student's older data shape understandable years later.
+
+---
+
+## Build 4 interaction architecture
+
+### Quick Add registry
+
+`QuickAddRegistry` is the stable extension point for fast creation actions. Build 4 registers Journey Moments first. As real module workflows are added, their quick-add actions should be registered here rather than hard-coded into Home or RootView.
+
+Custom collection actions are discovered dynamically from persisted `CustomTile` records.
+
+### Central route destination
+
+`AppRouteDestinationView` owns destination resolution for stable module IDs and custom-tile IDs. Home and Search both navigate through `AppRoute`, reducing duplicated routing logic.
+
+When a placeholder module becomes a real feature, replace its destination in this central router. Do not change the module ID.
+
+### Search
+
+Search is intentionally local-first and queries existing SwiftData content. It currently searches Journey Moments and custom collection content, plus enabled module names. Future module models should be added to Search without changing the tab or navigation architecture.
+
+### Home tile layout
+
+Home still consumes the same `HomeTileEntry` abstraction. Build 4 only changes presentation: wide entries span the screen and compact entries are packed two per row. Built-in module preferences and custom tile records remain unchanged.

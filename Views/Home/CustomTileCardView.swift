@@ -2,12 +2,26 @@ import SwiftUI
 
 struct CustomTileCardView: View {
     let tile: CustomTile
+    var itemCount: Int? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: tile.systemImage)
-                .font(.title2)
-                .symbolRenderingMode(.hierarchical)
+            HStack(alignment: .top) {
+                Image(systemName: tile.systemImage)
+                    .font(.title2)
+                    .symbolRenderingMode(.hierarchical)
+
+                Spacer(minLength: 8)
+
+                if let itemCount {
+                    Text("\(itemCount)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(.primary.opacity(0.06), in: Capsule())
+                }
+            }
 
             Spacer(minLength: 4)
 
@@ -33,7 +47,11 @@ struct CustomTileCardView: View {
         switch tile.tileType {
         case "resource": return "Open resource"
         case "shortcut": return "Shortcut"
-        default: return "My collection"
+        default:
+            if let itemCount {
+                return "\(itemCount) \(itemCount == 1 ? "item" : "items") saved"
+            }
+            return "My collection"
         }
     }
 }
