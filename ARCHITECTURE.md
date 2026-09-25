@@ -96,3 +96,11 @@ Search is intentionally local-first and queries existing SwiftData content. It c
 ### Home tile layout
 
 Home still consumes the same `HomeTileEntry` abstraction. Build 4 only changes presentation: wide entries span the screen and compact entries are packed two per row. Built-in module preferences and custom tile records remain unchanged.
+
+## Build 5.1 Home reordering
+
+Home tiles use the existing persisted `sortOrder` on `TilePreference` and `CustomTile`. `HomeView` now supports direct drag-and-drop reordering for enabled tiles in both Compact and Wide display modes. The same persisted order continues to drive Home Screen settings and Quick Add ordering. No schema change was required.
+
+## Build 5.2 - Keepsakes
+
+Reusable attachment support is now available through `AttachmentCollectionView`. Photos continue to use `PhotoAsset`, keyed by `ownerType` and `ownerID`. General files are copied into Application Support by `FileAttachmentStorageService`, with lightweight JSON metadata stored alongside the copied files. This deliberately avoids a new SwiftData migration while local-first storage is being stabilized.

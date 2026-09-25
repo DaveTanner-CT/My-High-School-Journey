@@ -90,3 +90,7 @@ After Build 2 compiles and passes the test checklist, the recommended next work 
 6. CloudKit compatibility review
 
 Do not start large College, Recruiting or Resume features until these shared foundations are stable.
+
+
+## Build 5
+Activities, Honors, Experiences, and Goals now support real student-owned records through SwiftData schema V2. See `BUILD_5_NOTES.md`.

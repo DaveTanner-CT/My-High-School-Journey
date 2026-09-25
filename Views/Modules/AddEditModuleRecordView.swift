@@ -18,6 +18,8 @@ struct AddEditModuleRecordView: View {
     @State private var status: String
     @State private var includeInExports: Bool
     @State private var showingSaveError = false
+    @State private var didFinish = false
+    @State private var draftOwnerID: UUID
 
     init(config: ModuleRecordConfig, record: ModuleRecord? = nil) {
         self.config = config
@@ -31,6 +33,7 @@ struct AddEditModuleRecordView: View {
         _reflection = State(initialValue: record?.reflection ?? "")
         _status = State(initialValue: record?.status ?? config.statuses.first ?? "")
         _includeInExports = State(initialValue: record?.includeInExports ?? true)
+        _draftOwnerID = State(initialValue: record?.id ?? UUID())
     }
 
     private var canSave: Bool {
@@ -87,6 +90,19 @@ struct AddEditModuleRecordView: View {
             }
 
             Section {
+                AttachmentCollectionView(
+                    ownerType: AttachmentOwnerType.moduleRecord,
+                    ownerID: draftOwnerID,
+                    allowsPhotos: true,
+                    allowsFiles: true
+                )
+            } header: {
+                Text("Keepsakes")
+            } footer: {
+                Text("Add photos, certificates, programs, PDFs, or other files now. They will stay connected to this item when you save it.")
+            }
+
+            Section {
                 Toggle("Include in future exports", isOn: $includeInExports)
             } footer: {
                 Text("You can change this later when building a resume, activities list, or other export.")
@@ -96,17 +112,23 @@ struct AddEditModuleRecordView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { cancel() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") { save() }
                     .disabled(!canSave)
             }
         }
+        .interactiveDismissDisabled(record == nil && !didFinish)
         .alert("Could Not Save", isPresented: $showingSaveError) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Your changes could not be saved. Please try again.")
+        }
+        .onDisappear {
+            if record == nil && !didFinish {
+                cleanupDraftAttachments()
+            }
         }
     }
 
@@ -137,15 +159,47 @@ struct AddEditModuleRecordView: View {
                 status: status,
                 includeInExports: includeInExports
             )
+            newRecord.id = draftOwnerID
             modelContext.insert(newRecord)
         }
 
         do {
             try modelContext.save()
+            didFinish = true
             dismiss()
         } catch {
             modelContext.rollback()
             showingSaveError = true
         }
+    }
+
+    private func cancel() {
+        if record == nil {
+            cleanupDraftAttachments()
+        }
+        didFinish = true
+        dismiss()
+    }
+
+    private func cleanupDraftAttachments() {
+        let allPhotos = (try? modelContext.fetch(FetchDescriptor<PhotoAsset>())) ?? []
+        let draftPhotos = allPhotos.filter {
+            $0.ownerType == AttachmentOwnerType.moduleRecord && $0.ownerID == draftOwnerID
+        }
+
+        for photo in draftPhotos {
+            PhotoStorageService.deleteFiles(
+                imageFilename: photo.imageFilename,
+                thumbnailFilename: photo.thumbnailFilename
+            )
+            modelContext.delete(photo)
+        }
+
+        FileAttachmentStorageService.deleteAll(
+            ownerType: AttachmentOwnerType.moduleRecord,
+            ownerID: draftOwnerID
+        )
+
+        try? modelContext.save()
     }
 }

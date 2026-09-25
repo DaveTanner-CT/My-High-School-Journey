@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import PhotosUI
 
 struct AddJourneyMomentView: View {
     @Environment(\.dismiss) private var dismiss
@@ -13,9 +12,10 @@ struct AddJourneyMomentView: View {
     @State private var reflection = ""
     @State private var gradeLevel = ""
     @State private var includeInExports = true
-    @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var isSaving = false
     @State private var saveError: String?
+    @State private var didFinish = false
+    @State private var draftOwnerID = UUID()
 
     private let categories = ["General", "Academic", "Activity", "Athletics", "Award", "Experience", "Service", "Work", "Personal"]
     private let grades = ["", "9", "10", "11", "12"]
@@ -39,26 +39,16 @@ struct AddJourneyMomentView: View {
             }
 
             Section {
-                PhotosPicker(
-                    selection: $selectedPhotos,
-                    maxSelectionCount: 6,
-                    matching: .images
-                ) {
-                    Label(
-                        selectedPhotos.isEmpty ? "Add Photos" : "Change Photos",
-                        systemImage: "photo.on.rectangle.angled"
-                    )
-                }
-
-                if !selectedPhotos.isEmpty {
-                    Text("\(selectedPhotos.count) photo\(selectedPhotos.count == 1 ? "" : "s") selected")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                AttachmentCollectionView(
+                    ownerType: AttachmentOwnerType.journeyMoment,
+                    ownerID: draftOwnerID,
+                    allowsPhotos: true,
+                    allowsFiles: true
+                )
             } header: {
-                Text("Photos")
+                Text("Keepsakes")
             } footer: {
-                Text("Photos stay with your private Journey and can be reused later in portfolios or selected exports.")
+                Text("Add photos, certificates, programs, PDFs, or other files now. They will stay connected to this Journey Moment when you save it.")
             }
 
             Section("What do you want to remember?") {
@@ -94,32 +84,25 @@ struct AddJourneyMomentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { cancel() }
                     .disabled(isSaving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                    Task { await save() }
-                }
-                .disabled(
-                    title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving
-                )
+                Button("Save") { save() }
+                    .disabled(
+                        title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving
+                    )
             }
         }
-        .interactiveDismissDisabled(hasUnsavedChanges || isSaving)
+        .interactiveDismissDisabled(!didFinish)
+        .onDisappear {
+            if !didFinish {
+                cleanupDraftAttachments()
+            }
+        }
     }
 
-    private var hasUnsavedChanges: Bool {
-        !title.isEmpty ||
-        !summary.isEmpty ||
-        !reflection.isEmpty ||
-        category != "General" ||
-        gradeLevel != "" ||
-        !selectedPhotos.isEmpty
-    }
-
-    @MainActor
-    private func save() async {
+    private func save() {
         saveError = nil
         isSaving = true
 
@@ -133,43 +116,47 @@ struct AddJourneyMomentView: View {
             isFeatured: true,
             includeInExports: includeInExports
         )
+        moment.id = draftOwnerID
 
-        var stagedPhotos: [PhotoAsset] = []
+        modelContext.insert(moment)
 
         do {
-            for (index, pickerItem) in selectedPhotos.enumerated() {
-                let photoID = UUID()
-                let stored = try await PhotoStorageService.savePickerItem(pickerItem, id: photoID)
-                let photo = PhotoAsset(
-                    ownerType: PhotoOwnerType.journeyMoment,
-                    ownerID: moment.id,
-                    imageFilename: stored.imageFilename,
-                    thumbnailFilename: stored.thumbnailFilename,
-                    sortOrder: index
-                )
-                photo.id = photoID
-                stagedPhotos.append(photo)
-            }
-
-            modelContext.insert(moment)
-            for photo in stagedPhotos {
-                modelContext.insert(photo)
-            }
-
             try modelContext.save()
+            didFinish = true
             isSaving = false
             dismiss()
         } catch {
-            for photo in stagedPhotos {
-                PhotoStorageService.deleteFiles(
-                    imageFilename: photo.imageFilename,
-                    thumbnailFilename: photo.thumbnailFilename
-                )
-            }
             modelContext.rollback()
             isSaving = false
             saveError = "This moment was not saved. Please try again. \(error.localizedDescription)"
         }
     }
 
+    private func cancel() {
+        cleanupDraftAttachments()
+        didFinish = true
+        dismiss()
+    }
+
+    private func cleanupDraftAttachments() {
+        let allPhotos = (try? modelContext.fetch(FetchDescriptor<PhotoAsset>())) ?? []
+        let draftPhotos = allPhotos.filter {
+            $0.ownerType == AttachmentOwnerType.journeyMoment && $0.ownerID == draftOwnerID
+        }
+
+        for photo in draftPhotos {
+            PhotoStorageService.deleteFiles(
+                imageFilename: photo.imageFilename,
+                thumbnailFilename: photo.thumbnailFilename
+            )
+            modelContext.delete(photo)
+        }
+
+        FileAttachmentStorageService.deleteAll(
+            ownerType: AttachmentOwnerType.journeyMoment,
+            ownerID: draftOwnerID
+        )
+
+        try? modelContext.save()
+    }
 }
