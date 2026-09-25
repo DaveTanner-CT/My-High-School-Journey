@@ -8,6 +8,8 @@ struct AppRouteDestinationView: View {
         case .module(let id):
             if id == "journey" {
                 JourneyView()
+            } else if ModuleRecordConfig.supportsRecords(id) {
+                ModuleRecordsView(moduleID: id)
             } else if let module = ModuleRegistry.module(id: id) {
                 ModulePlaceholderView(
                     title: module.title,

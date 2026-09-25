@@ -99,6 +99,21 @@ struct QuickAddView: View {
                 }
                 .buttonStyle(.plain)
 
+            case .addModuleRecord(let moduleID):
+                if let config = ModuleRecordConfig.config(for: moduleID) {
+                    NavigationLink {
+                        AddEditModuleRecordView(config: config)
+                    } label: {
+                        QuickAddCard(
+                            title: action.title,
+                            subtitle: action.subtitle,
+                            systemImage: action.systemImage,
+                            actionLabel: action.actionLabel
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
             case .openModule(let moduleID):
                 NavigationLink {
                     AppRouteDestinationView(route: .module(moduleID))

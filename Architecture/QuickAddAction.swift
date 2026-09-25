@@ -3,6 +3,7 @@ import Foundation
 struct QuickAddAction: Identifiable, Hashable {
     enum Kind: Hashable {
         case addJourneyMoment
+        case addModuleRecord(String)
         case openModule(String)
     }
 
@@ -24,6 +25,17 @@ enum QuickAddRegistry {
                 systemImage: module.systemImage,
                 actionLabel: "Add",
                 kind: .addJourneyMoment
+            )
+        }
+
+        if ModuleRecordConfig.supportsRecords(module.id) {
+            return QuickAddAction(
+                id: "module:\(module.id)",
+                title: module.title,
+                subtitle: "Add a new \(ModuleRecordConfig.config(for: module.id)?.singularTitle.lowercased() ?? "item")",
+                systemImage: module.systemImage,
+                actionLabel: "Add",
+                kind: .addModuleRecord(module.id)
             )
         }
 

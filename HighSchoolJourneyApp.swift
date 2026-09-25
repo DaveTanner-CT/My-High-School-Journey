@@ -7,7 +7,7 @@ struct HighSchoolJourneyApp: App {
 
     init() {
         do {
-            let schema = Schema(versionedSchema: JourneySchemaV1.self)
+            let schema = Schema(versionedSchema: JourneySchemaV2.self)
             modelContainer = try ModelContainer(
                 for: schema,
                 migrationPlan: JourneyMigrationPlan.self

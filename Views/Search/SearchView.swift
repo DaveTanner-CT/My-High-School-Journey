@@ -4,6 +4,7 @@ import SwiftData
 struct SearchView: View {
     @Query(sort: \JourneyMoment.momentDate, order: .reverse) private var moments: [JourneyMoment]
     @Query(sort: \CustomTileItem.itemDate, order: .reverse) private var customItems: [CustomTileItem]
+    @Query(sort: \ModuleRecord.recordDate, order: .reverse) private var moduleRecords: [ModuleRecord]
     @Query private var customTiles: [CustomTile]
     @Query private var preferences: [TilePreference]
 
@@ -17,6 +18,17 @@ struct SearchView: View {
         guard !normalizedQuery.isEmpty else { return [] }
         return moments.filter { moment in
             [moment.title, moment.category, moment.summary, moment.reflection, moment.gradeLevel]
+                .contains { $0.localizedCaseInsensitiveContains(normalizedQuery) }
+        }
+    }
+
+
+    private var matchingModuleRecords: [ModuleRecord] {
+        guard !normalizedQuery.isEmpty else { return [] }
+        return moduleRecords.filter { record in
+            enabledModuleIDs.contains(record.moduleID) &&
+            ModuleRecordConfig.supportsRecords(record.moduleID) &&
+            [record.title, record.category, record.organization, record.role, record.details, record.reflection, record.status]
                 .contains { $0.localizedCaseInsensitiveContains(normalizedQuery) }
         }
     }
@@ -53,6 +65,7 @@ struct SearchView: View {
 
     private var hasResults: Bool {
         !matchingMoments.isEmpty ||
+        !matchingModuleRecords.isEmpty ||
         !matchingCustomItems.isEmpty ||
         !matchingModules.isEmpty ||
         !matchingCustomTiles.isEmpty
@@ -64,7 +77,7 @@ struct SearchView: View {
                 ContentUnavailableView {
                     Label("Search My Journey", systemImage: "magnifyingglass")
                 } description: {
-                    Text("Find Journey moments, custom collection items, and enabled parts of the app.")
+                    Text("Find Journey moments, activities, honors, experiences, goals, custom collections, and enabled parts of the app.")
                 }
             } else if !hasResults {
                 ContentUnavailableView {
@@ -94,6 +107,34 @@ struct SearchView: View {
                                         }
                                     }
                                     .padding(.vertical, 3)
+                                }
+                            }
+                        }
+                    }
+
+
+                    if !matchingModuleRecords.isEmpty {
+                        Section("Journey Records") {
+                            ForEach(matchingModuleRecords) { record in
+                                if let config = ModuleRecordConfig.config(for: record.moduleID) {
+                                    NavigationLink {
+                                        ModuleRecordDetailView(record: record, config: config)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(record.title)
+                                                .font(.headline)
+                                            Text(config.title)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            if !record.details.isEmpty {
+                                                Text(record.details)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                                    .lineLimit(2)
+                                            }
+                                        }
+                                        .padding(.vertical, 3)
+                                    }
                                 }
                             }
                         }

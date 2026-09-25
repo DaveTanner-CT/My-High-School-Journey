@@ -7,6 +7,7 @@ struct HomeView: View {
     @Query private var customTiles: [CustomTile]
     @Query(sort: \CustomTileItem.itemDate, order: .reverse) private var customItems: [CustomTileItem]
     @Query(sort: \JourneyMoment.momentDate, order: .reverse) private var moments: [JourneyMoment]
+    @Query(sort: \ModuleRecord.recordDate, order: .reverse) private var moduleRecords: [ModuleRecord]
     @Query(sort: \PhotoAsset.sortOrder) private var photoAssets: [PhotoAsset]
 
     @State private var showingQuickAdd = false
@@ -281,7 +282,7 @@ struct HomeView: View {
                 NavigationLink(value: AppRoute.module(module.id)) {
                     ModuleTileView(
                         module: module,
-                        statusText: module.id == "journey" ? journeyStatusText : nil,
+                        statusText: statusText(for: module),
                         displayMode: displayMode
                     )
                 }
@@ -325,6 +326,19 @@ struct HomeView: View {
     private var journeyStatusText: String {
         if moments.isEmpty { return "Start my story" }
         return "\(moments.count) \(moments.count == 1 ? "moment" : "moments")"
+    }
+
+    private func statusText(for module: AppModule) -> String? {
+        if module.id == "journey" {
+            return journeyStatusText
+        }
+
+        guard ModuleRecordConfig.supportsRecords(module.id) else {
+            return nil
+        }
+
+        let count = moduleRecords.filter { $0.moduleID == module.id }.count
+        return count == 0 ? "Start here" : "\(count) saved"
     }
 
     private func photos(for moment: JourneyMoment) -> [PhotoAsset] {
