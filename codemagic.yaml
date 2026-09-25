@@ -10,20 +10,26 @@ workflows:
         XCODE_SCHEME: "HighSchoolJourney"
 
     scripts:
+      - name: Show build environment
+        script: |
+          echo "Xcode version:"
+          xcodebuild -version
+          echo "Swift version:"
+          swift --version
+
       - name: Install XcodeGen
         script: |
           brew install xcodegen
 
       - name: Generate project and build
         script: |
-          set -e
           set -o pipefail
 
           APP_FILE=$(find "$CM_BUILD_DIR" -maxdepth 3 -name HighSchoolJourneyApp.swift -print -quit)
 
           if [ -z "$APP_FILE" ]; then
             echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
-            echo "Make sure the Build 2 source files are uploaded to GitHub."
+            echo "Make sure the app source files are uploaded to GitHub."
             find "$CM_BUILD_DIR" -maxdepth 3 -type f | sort
             exit 1
           fi
@@ -44,6 +50,7 @@ workflows:
           xcodebuild -project "$XCODE_PROJECT" -list
 
           echo "Building for the iOS Simulator..."
+          set +e
           xcodebuild \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
@@ -52,9 +59,85 @@ workflows:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$CM_BUILD_DIR/build" \
             CODE_SIGNING_ALLOWED=NO \
-            build | tee "$CM_BUILD_DIR/xcodebuild.log"
+            build 2>&1 | tee "$CM_BUILD_DIR/xcodebuild.log"
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            echo ""
+            echo "============================================================"
+            echo "COMPILER ERRORS FOUND"
+            echo "============================================================"
+            grep -n -E -B 5 -A 8 '(^|[[:space:]])error:' "$CM_BUILD_DIR/xcodebuild.log" || true
+            echo "============================================================"
+            echo "End compiler error summary"
+            echo "============================================================"
+            exit "$BUILD_STATUS"
+          fi
+
+          echo "Build succeeded."
 
     artifacts:
       - xcodebuild.log
       - build/Build/Products/Debug-iphonesimulator/*.app
       - build/Logs/**/*.xcactivitylog
+
+  ios-signed-build:
+    name: iOS Signed Build
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: org.scriptingforschools.MyHighSchoolJourney
+      vars:
+        XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
+        XCODE_SCHEME: "HighSchoolJourney"
+      xcode: latest
+
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+
+      - name: Generate project and create signed IPA
+        script: |
+          set -e
+
+          APP_FILE=$(find "$CM_BUILD_DIR" -maxdepth 3 -name HighSchoolJourneyApp.swift -print -quit)
+
+          if [ -z "$APP_FILE" ]; then
+            echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
+            echo "Make sure the app source files are uploaded to GitHub."
+            find "$CM_BUILD_DIR" -maxdepth 3 -type f | sort
+            exit 1
+          fi
+
+          APP_SOURCE_DIR=$(dirname "$APP_FILE")
+          echo "App source found at: $APP_SOURCE_DIR"
+
+          if [ "$APP_SOURCE_DIR" != "$CM_BUILD_DIR" ]; then
+            cp "$CM_BUILD_DIR/project.yml" "$APP_SOURCE_DIR/project.yml"
+          fi
+
+          cd "$APP_SOURCE_DIR"
+
+          echo "Generating Xcode project..."
+          xcodegen generate --spec project.yml
+
+          echo "Applying Codemagic provisioning profile and signing certificate..."
+          xcode-project use-profiles --project "$XCODE_PROJECT"
+
+          echo "Building signed IPA..."
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+          echo "Signed IPA build completed."
+
+    artifacts:
+      - "**/build/ios/ipa/*.ipa"
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
