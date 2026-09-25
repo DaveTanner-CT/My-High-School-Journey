@@ -31,7 +31,7 @@ struct ModuleRecordDetailView: View {
             }
 
             if !record.organization.isEmpty || !record.role.isEmpty {
-                Section("Where & How") {
+                Section(config.contextSectionTitle) {
                     if !record.organization.isEmpty {
                         LabeledContent(config.organizationLabel ?? "Organization", value: record.organization)
                     }
@@ -54,7 +54,7 @@ struct ModuleRecordDetailView: View {
             }
 
             if !record.status.isEmpty {
-                Section("Progress") {
+                Section(config.statusSectionTitle) {
                     LabeledContent("Status", value: record.status)
                 }
             }

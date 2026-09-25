@@ -75,10 +75,14 @@ struct ModuleRecordsView: View {
         switch config.moduleID {
         case "activities":
             return "Keep track of clubs, leadership, arts, and other things you take part in."
+        case "athletics":
+            return "Save teams, seasons, stats, milestones, and the moments you want to remember."
         case "honors":
             return "Save awards and recognition now so you do not have to remember them later."
         case "experiences":
             return "Save jobs, service, internships, programs, and projects as they happen."
+        case "people":
+            return "Keep track of teachers, coaches, counselors, mentors, and others who know your work and growth."
         case "goals":
             return "Write down something you want to work toward and keep track of your progress."
         default:

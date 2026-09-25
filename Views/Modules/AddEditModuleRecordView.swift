@@ -45,7 +45,7 @@ struct AddEditModuleRecordView: View {
                 DatePicker(config.dateLabel, selection: $recordDate, displayedComponents: .date)
 
                 if !config.categories.isEmpty {
-                    Picker("Type", selection: $category) {
+                    Picker(config.typeLabel, selection: $category) {
                         ForEach(config.categories, id: \.self) { option in
                             Text(option).tag(option)
                         }
@@ -54,7 +54,7 @@ struct AddEditModuleRecordView: View {
             }
 
             if config.organizationLabel != nil || config.roleLabel != nil {
-                Section("Where & How") {
+                Section(config.contextSectionTitle) {
                     if let label = config.organizationLabel {
                         TextField(label, text: $organization)
                     }
@@ -77,7 +77,7 @@ struct AddEditModuleRecordView: View {
             }
 
             if !config.statuses.isEmpty {
-                Section("Progress") {
+                Section(config.statusSectionTitle) {
                     Picker("Status", selection: $status) {
                         ForEach(config.statuses, id: \.self) { option in
                             Text(option).tag(option)
