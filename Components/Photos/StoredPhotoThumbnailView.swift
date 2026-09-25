@@ -3,14 +3,16 @@ import UIKit
 
 struct StoredPhotoThumbnailView: View {
     let filename: String
-    var height: CGFloat = 180
+    var maxHeight: CGFloat = 440
+    var cornerRadius: CGFloat = 14
 
     var body: some View {
         Group {
-            if let image = loadImage() {
+            if let image = StoredPhotoImageLoader.load(filename: filename) {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: maxHeight)
             } else {
                 ZStack {
                     Rectangle()
@@ -19,16 +21,38 @@ struct StoredPhotoThumbnailView: View {
                         .font(.title2)
                         .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 180)
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .accessibilityHidden(true)
     }
+}
 
-    private func loadImage() -> UIImage? {
+struct StoredPhotoFullView: View {
+    let filename: String
+
+    var body: some View {
+        Group {
+            if let image = StoredPhotoImageLoader.load(filename: filename) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                ContentUnavailableView(
+                    "Photo unavailable",
+                    systemImage: "photo.badge.exclamationmark",
+                    description: Text("This photo could not be loaded from this device.")
+                )
+            }
+        }
+    }
+}
+
+enum StoredPhotoImageLoader {
+    static func load(filename: String) -> UIImage? {
         guard let url = PhotoStorageService.imageURL(filename: filename) else {
             return nil
         }

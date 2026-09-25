@@ -17,10 +17,15 @@ struct JourneyView: View {
                 ScrollView {
                     LazyVStack(spacing: 16) {
                         ForEach(moments) { moment in
-                            JourneyMomentCard(
-                                moment: moment,
-                                photos: photos(for: moment)
-                            )
+                            NavigationLink {
+                                JourneyMomentDetailView(moment: moment)
+                            } label: {
+                                JourneyMomentCard(
+                                    moment: moment,
+                                    photos: photos(for: moment)
+                                )
+                            }
+                            .buttonStyle(.plain)
                             .contextMenu {
                                 Button(role: .destructive) {
                                     deleteMoment(moment)
@@ -54,9 +59,11 @@ struct JourneyView: View {
     }
 
     private func photos(for moment: JourneyMoment) -> [PhotoAsset] {
-        photoAssets.filter {
-            $0.ownerType == PhotoOwnerType.journeyMoment && $0.ownerID == moment.id
-        }
+        photoAssets
+            .filter {
+                $0.ownerType == PhotoOwnerType.journeyMoment && $0.ownerID == moment.id
+            }
+            .sorted { $0.sortOrder < $1.sortOrder }
     }
 
     private func deleteMoment(_ moment: JourneyMoment) {
@@ -80,12 +87,25 @@ private struct JourneyMomentCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let firstPhoto = photos.first {
-                StoredPhotoThumbnailView(filename: firstPhoto.thumbnailFilename)
+                StoredPhotoThumbnailView(
+                    filename: firstPhoto.thumbnailFilename,
+                    maxHeight: 400,
+                    cornerRadius: 16
+                )
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                Text(moment.title)
-                    .font(.title3.weight(.semibold))
+                HStack(alignment: .firstTextBaseline) {
+                    Text(moment.title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
 
                 HStack(spacing: 7) {
                     Label(moment.category, systemImage: "tag")
@@ -98,6 +118,7 @@ private struct JourneyMomentCard: View {
                 if !moment.summary.isEmpty {
                     Text(moment.summary)
                         .font(.subheadline)
+                        .foregroundStyle(.primary)
                 }
 
                 if photos.count > 1 {
@@ -105,6 +126,10 @@ private struct JourneyMomentCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Text("Tap to open")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 2)
         }
