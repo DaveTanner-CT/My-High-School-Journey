@@ -8,6 +8,7 @@ workflows:
       vars:
         XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
         XCODE_SCHEME: "HighSchoolJourney"
+        BUILD_NUMBER: "$CM_BUILD_NUMBER"
 
     scripts:
       - name: Show build environment
@@ -29,7 +30,6 @@ workflows:
 
           if [ -z "$APP_FILE" ]; then
             echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
-            echo "Make sure the app source files are uploaded to GitHub."
             find "$CM_BUILD_DIR" -maxdepth 3 -type f | sort
             exit 1
           fi
@@ -39,15 +39,17 @@ workflows:
 
           if [ "$APP_SOURCE_DIR" != "$CM_BUILD_DIR" ]; then
             cp "$CM_BUILD_DIR/project.yml" "$APP_SOURCE_DIR/project.yml"
+            if [ -d "$CM_BUILD_DIR/Resources" ]; then
+              rm -rf "$APP_SOURCE_DIR/Resources"
+              cp -R "$CM_BUILD_DIR/Resources" "$APP_SOURCE_DIR/Resources"
+            fi
           fi
 
           cd "$APP_SOURCE_DIR"
+          export BUILD_NUMBER="$CM_BUILD_NUMBER"
 
-          echo "Generating Xcode project..."
+          echo "Generating Xcode project with build number $BUILD_NUMBER..."
           xcodegen generate --spec project.yml
-
-          echo "Available Xcode targets and schemes:"
-          xcodebuild -project "$XCODE_PROJECT" -list
 
           echo "Building for the iOS Simulator..."
           set +e
@@ -69,8 +71,6 @@ workflows:
             echo "COMPILER ERRORS FOUND"
             echo "============================================================"
             grep -n -E -B 5 -A 8 '(^|[[:space:]])error:' "$CM_BUILD_DIR/xcodebuild.log" || true
-            echo "============================================================"
-            echo "End compiler error summary"
             echo "============================================================"
             exit "$BUILD_STATUS"
           fi
@@ -94,6 +94,7 @@ workflows:
       vars:
         XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
         XCODE_SCHEME: "HighSchoolJourney"
+        BUILD_NUMBER: "$CM_BUILD_NUMBER"
       xcode: latest
 
     scripts:
@@ -106,24 +107,24 @@ workflows:
           set -e
 
           APP_FILE=$(find "$CM_BUILD_DIR" -maxdepth 3 -name HighSchoolJourneyApp.swift -print -quit)
-
           if [ -z "$APP_FILE" ]; then
             echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
-            echo "Make sure the app source files are uploaded to GitHub."
-            find "$CM_BUILD_DIR" -maxdepth 3 -type f | sort
             exit 1
           fi
 
           APP_SOURCE_DIR=$(dirname "$APP_FILE")
-          echo "App source found at: $APP_SOURCE_DIR"
-
           if [ "$APP_SOURCE_DIR" != "$CM_BUILD_DIR" ]; then
             cp "$CM_BUILD_DIR/project.yml" "$APP_SOURCE_DIR/project.yml"
+            if [ -d "$CM_BUILD_DIR/Resources" ]; then
+              rm -rf "$APP_SOURCE_DIR/Resources"
+              cp -R "$CM_BUILD_DIR/Resources" "$APP_SOURCE_DIR/Resources"
+            fi
           fi
 
           cd "$APP_SOURCE_DIR"
+          export BUILD_NUMBER="$CM_BUILD_NUMBER"
 
-          echo "Generating Xcode project..."
+          echo "Generating Xcode project with build number $BUILD_NUMBER..."
           xcodegen generate --spec project.yml
 
           echo "Applying Codemagic provisioning profile and signing certificate..."
@@ -134,10 +135,73 @@ workflows:
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
 
-          echo "Signed IPA build completed."
-
     artifacts:
       - "**/build/ios/ipa/*.ipa"
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+  ios-testflight-upload:
+    name: iOS TestFlight Upload
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: app_store_connect
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: org.scriptingforschools.MyHighSchoolJourney
+      vars:
+        XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
+        XCODE_SCHEME: "HighSchoolJourney"
+        BUILD_NUMBER: "$CM_BUILD_NUMBER"
+      xcode: latest
+
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+
+      - name: Generate project and create signed IPA
+        script: |
+          set -e
+
+          APP_FILE=$(find "$CM_BUILD_DIR" -maxdepth 3 -name HighSchoolJourneyApp.swift -print -quit)
+          if [ -z "$APP_FILE" ]; then
+            echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
+            exit 1
+          fi
+
+          APP_SOURCE_DIR=$(dirname "$APP_FILE")
+          if [ "$APP_SOURCE_DIR" != "$CM_BUILD_DIR" ]; then
+            cp "$CM_BUILD_DIR/project.yml" "$APP_SOURCE_DIR/project.yml"
+            if [ -d "$CM_BUILD_DIR/Resources" ]; then
+              rm -rf "$APP_SOURCE_DIR/Resources"
+              cp -R "$CM_BUILD_DIR/Resources" "$APP_SOURCE_DIR/Resources"
+            fi
+          fi
+
+          cd "$APP_SOURCE_DIR"
+          export BUILD_NUMBER="$CM_BUILD_NUMBER"
+
+          echo "Generating Xcode project with build number $BUILD_NUMBER..."
+          xcodegen generate --spec project.yml
+
+          echo "Applying Codemagic provisioning profile and signing certificate..."
+          xcode-project use-profiles --project "$XCODE_PROJECT"
+
+          echo "Building IPA for TestFlight..."
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - "**/build/ios/ipa/*.ipa"
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
