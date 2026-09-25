@@ -8,7 +8,6 @@ workflows:
       vars:
         XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
         XCODE_SCHEME: "HighSchoolJourney"
-        BUILD_NUMBER: "$CM_BUILD_NUMBER"
 
     scripts:
       - name: Show build environment
@@ -46,9 +45,6 @@ workflows:
           fi
 
           cd "$APP_SOURCE_DIR"
-          export BUILD_NUMBER="$CM_BUILD_NUMBER"
-
-          echo "Generating Xcode project with build number $BUILD_NUMBER..."
           xcodegen generate --spec project.yml
 
           echo "Building for the iOS Simulator..."
@@ -94,7 +90,6 @@ workflows:
       vars:
         XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
         XCODE_SCHEME: "HighSchoolJourney"
-        BUILD_NUMBER: "$CM_BUILD_NUMBER"
       xcode: latest
 
     scripts:
@@ -102,7 +97,7 @@ workflows:
         script: |
           brew install xcodegen
 
-      - name: Generate project and create signed IPA
+      - name: Generate project and set build number
         script: |
           set -e
 
@@ -122,10 +117,14 @@ workflows:
           fi
 
           cd "$APP_SOURCE_DIR"
-          export BUILD_NUMBER="$CM_BUILD_NUMBER"
-
-          echo "Generating Xcode project with build number $BUILD_NUMBER..."
           xcodegen generate --spec project.yml
+
+          IOS_BUILD_NUMBER="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          echo "Setting iOS build number to $IOS_BUILD_NUMBER"
+          xcrun agvtool new-version -all "$IOS_BUILD_NUMBER"
+
+          echo "Verifying build number..."
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -showBuildSettings | grep -E 'CURRENT_PROJECT_VERSION|MARKETING_VERSION|PRODUCT_BUNDLE_IDENTIFIER'
 
           echo "Applying Codemagic provisioning profile and signing certificate..."
           xcode-project use-profiles --project "$XCODE_PROJECT"
@@ -156,7 +155,6 @@ workflows:
       vars:
         XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
         XCODE_SCHEME: "HighSchoolJourney"
-        BUILD_NUMBER: "$CM_BUILD_NUMBER"
       xcode: latest
 
     scripts:
@@ -164,7 +162,7 @@ workflows:
         script: |
           brew install xcodegen
 
-      - name: Generate project and create signed IPA
+      - name: Generate project, set build number, and create signed IPA
         script: |
           set -e
 
@@ -184,10 +182,14 @@ workflows:
           fi
 
           cd "$APP_SOURCE_DIR"
-          export BUILD_NUMBER="$CM_BUILD_NUMBER"
-
-          echo "Generating Xcode project with build number $BUILD_NUMBER..."
           xcodegen generate --spec project.yml
+
+          IOS_BUILD_NUMBER="${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-1}}"
+          echo "Setting iOS build number to $IOS_BUILD_NUMBER"
+          xcrun agvtool new-version -all "$IOS_BUILD_NUMBER"
+
+          echo "Verifying version settings before archive..."
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -showBuildSettings | grep -E 'CURRENT_PROJECT_VERSION|MARKETING_VERSION|PRODUCT_BUNDLE_IDENTIFIER'
 
           echo "Applying Codemagic provisioning profile and signing certificate..."
           xcode-project use-profiles --project "$XCODE_PROJECT"
@@ -197,6 +199,20 @@ workflows:
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
 
+          IPA_PATH=$(find "$APP_SOURCE_DIR/build/ios/ipa" -name '*.ipa' -print -quit)
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: IPA was not created."
+            exit 1
+          fi
+
+          echo "Verifying packaged Info.plist..."
+          rm -rf /tmp/hsj_ipa_check
+          mkdir -p /tmp/hsj_ipa_check
+          unzip -q "$IPA_PATH" -d /tmp/hsj_ipa_check
+          APP_PATH=$(find /tmp/hsj_ipa_check/Payload -maxdepth 1 -name '*.app' -print -quit)
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist"
+
     artifacts:
       - "**/build/ios/ipa/*.ipa"
       - /tmp/xcodebuild_logs/*.log
@@ -205,3 +221,5 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
