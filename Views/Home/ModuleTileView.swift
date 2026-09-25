@@ -1,0 +1,32 @@
+import SwiftUI
+
+struct ModuleTileView: View {
+    let module: AppModule
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: module.systemImage)
+                .font(.title2)
+                .symbolRenderingMode(.hierarchical)
+
+            Spacer(minLength: 4)
+
+            Text(module.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(module.subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(module.tileSize == .compact ? 2 : 3)
+        }
+        .frame(maxWidth: .infinity, minHeight: module.tileSize == .compact ? 142 : 120, alignment: .leading)
+        .padding(18)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+}
