@@ -38,7 +38,7 @@ struct AddJourneyMomentView: View {
                 }
             }
 
-            Section("Photos") {
+            Section {
                 PhotosPicker(
                     selection: $selectedPhotos,
                     maxSelectionCount: 6,
@@ -55,6 +55,8 @@ struct AddJourneyMomentView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+            } header: {
+                Text("Photos")
             } footer: {
                 Text("Photos stay with your private Journey and can be reused later in portfolios or selected exports.")
             }
