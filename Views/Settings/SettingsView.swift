@@ -50,8 +50,10 @@ private struct ProfileEditor: View {
         TextField("School (optional)", text: $profile.schoolName)
             .onChange(of: profile.schoolName) { _, _ in save() }
 
-        Stepper("Class of \(profile.graduationYear)", value: $profile.graduationYear, in: 2026...2045)
-            .onChange(of: profile.graduationYear) { _, _ in save() }
+        Stepper(value: $profile.graduationYear, in: 2026...2045) {
+            Text("Class of \(profile.graduationYear, format: .number.grouping(.never))")
+        }
+        .onChange(of: profile.graduationYear) { _, _ in save() }
     }
 
     private func save() {
