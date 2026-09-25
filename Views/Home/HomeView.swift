@@ -86,8 +86,8 @@ struct HomeView: View {
                 }
 
                 VStack(spacing: 14) {
-                    ForEach(tileRows, id: \.id) { row in
-                        switch row {
+                    ForEach(tileRows.indices, id: \.self) { index in
+                        switch tileRows[index] {
                         case .wide(let entry):
                             tile(for: entry)
 
