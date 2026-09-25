@@ -85,6 +85,10 @@ struct ModuleRecordsView: View {
             return "Keep track of teachers, coaches, counselors, mentors, and others who know your work and growth."
         case "goals":
             return "Write down something you want to work toward and keep track of your progress."
+        case "collegeVisits":
+            return "Save campus visits, virtual visits, people you met, photos, and the impressions you want to remember later."
+        case "recruiting":
+            return "Keep coach contacts, questionnaires, visits, camps, offers, and your next steps together in one place."
         default:
             return "Add your first item."
         }

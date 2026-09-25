@@ -107,6 +107,43 @@ struct ModuleRecordConfig {
         statuses: ["Stay in touch", "Could ask for recommendation", "Recommendation requested", "Recommendation received"]
     )
 
+
+    static let collegeVisits = ModuleRecordConfig(
+        moduleID: "collegeVisits",
+        title: "College Visits",
+        singularTitle: "College Visit",
+        systemImage: "building.columns.fill",
+        titleLabel: "College or university",
+        dateLabel: "Visit date",
+        typeLabel: "Visit type",
+        categories: ["Campus tour", "Open house", "Information session", "Overnight visit", "Virtual visit", "Other"],
+        contextSectionTitle: "Visit Details",
+        organizationLabel: "Location or campus",
+        roleLabel: "Who did you meet?",
+        detailsLabel: "What stood out?",
+        reflectionLabel: "How did this school feel to you?",
+        statusSectionTitle: "Interest",
+        statuses: ["Interested", "Researching", "Planning to apply", "Applied", "Not for me"]
+    )
+
+    static let recruiting = ModuleRecordConfig(
+        moduleID: "recruiting",
+        title: "Athletic Recruiting",
+        singularTitle: "Recruiting Update",
+        systemImage: "sportscourt.fill",
+        titleLabel: "School or program",
+        dateLabel: "Contact or event date",
+        typeLabel: "Update type",
+        categories: ["Coach contact", "Questionnaire", "Camp or clinic", "Campus visit", "Game or showcase", "Offer or interest", "Other"],
+        contextSectionTitle: "Recruiting Details",
+        organizationLabel: "Coach or contact",
+        roleLabel: "Sport, position, or event",
+        detailsLabel: "What happened or what was discussed?",
+        reflectionLabel: "What do you want to remember or do next?",
+        statusSectionTitle: "Recruiting Status",
+        statuses: ["Interested", "Contacted", "Coach replied", "Visit planned", "Offer received", "Not pursuing"]
+    )
+
     static let goals = ModuleRecordConfig(
         moduleID: "goals",
         title: "Goals",
@@ -125,7 +162,7 @@ struct ModuleRecordConfig {
         statuses: ["Not started", "In progress", "Completed"]
     )
 
-    static let all: [ModuleRecordConfig] = [activities, athletics, honors, experiences, people, goals]
+    static let all: [ModuleRecordConfig] = [activities, athletics, honors, experiences, people, goals, collegeVisits, recruiting]
 
     static func config(for moduleID: String) -> ModuleRecordConfig? {
         all.first { $0.moduleID == moduleID }

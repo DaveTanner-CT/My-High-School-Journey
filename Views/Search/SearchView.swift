@@ -77,7 +77,7 @@ struct SearchView: View {
                 ContentUnavailableView {
                     Label("Search My Journey", systemImage: "magnifyingglass")
                 } description: {
-                    Text("Find Journey moments, activities, athletics, honors, experiences, people, goals, custom collections, and enabled parts of the app.")
+                    Text("Find Journey moments, activities, athletics, honors, experiences, people, goals, college visits, recruiting updates, custom collections, and enabled parts of the app.")
                 }
             } else if !hasResults {
                 ContentUnavailableView {
