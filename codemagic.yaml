@@ -1,0 +1,60 @@
+workflows:
+  ios-build-check:
+    name: iOS Build Check
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      vars:
+        XCODE_PROJECT: "MyHighSchoolJourney.xcodeproj"
+        XCODE_SCHEME: "HighSchoolJourney"
+
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+
+      - name: Generate project and build
+        script: |
+          set -e
+          set -o pipefail
+
+          APP_FILE=$(find "$CM_BUILD_DIR" -maxdepth 3 -name HighSchoolJourneyApp.swift -print -quit)
+
+          if [ -z "$APP_FILE" ]; then
+            echo "ERROR: HighSchoolJourneyApp.swift was not found in the repository."
+            echo "Make sure the Build 2 source files are uploaded to GitHub."
+            find "$CM_BUILD_DIR" -maxdepth 3 -type f | sort
+            exit 1
+          fi
+
+          APP_SOURCE_DIR=$(dirname "$APP_FILE")
+          echo "App source found at: $APP_SOURCE_DIR"
+
+          if [ "$APP_SOURCE_DIR" != "$CM_BUILD_DIR" ]; then
+            cp "$CM_BUILD_DIR/project.yml" "$APP_SOURCE_DIR/project.yml"
+          fi
+
+          cd "$APP_SOURCE_DIR"
+
+          echo "Generating Xcode project..."
+          xcodegen generate --spec project.yml
+
+          echo "Available Xcode targets and schemes:"
+          xcodebuild -project "$XCODE_PROJECT" -list
+
+          echo "Building for the iOS Simulator..."
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$CM_BUILD_DIR/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee "$CM_BUILD_DIR/xcodebuild.log"
+
+    artifacts:
+      - xcodebuild.log
+      - build/Build/Products/Debug-iphonesimulator/*.app
+      - build/Logs/**/*.xcactivitylog
