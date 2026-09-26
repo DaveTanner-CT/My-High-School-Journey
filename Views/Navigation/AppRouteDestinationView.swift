@@ -10,6 +10,8 @@ struct AppRouteDestinationView: View {
                 JourneyView()
             } else if id == "resources" {
                 TrustedResourcesView()
+            } else if id == "resume" {
+                ResumeBuilderView()
             } else if ModuleRecordConfig.supportsRecords(id) {
                 ModuleRecordsView(moduleID: id)
             } else if let module = ModuleRegistry.module(id: id) {
