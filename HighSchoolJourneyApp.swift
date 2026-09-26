@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import GoogleSignIn
 
 @main
 struct HighSchoolJourneyApp: App {
@@ -20,6 +21,14 @@ struct HighSchoolJourneyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .onOpenURL { url in
+                    _ = GoogleOAuthService.shared.handleOpenURL(url)
+                }
+                .task {
+                    if GIDSignIn.sharedInstance.hasPreviousSignIn() {
+                        _ = try? await GIDSignIn.sharedInstance.restorePreviousSignIn()
+                    }
+                }
         }
         .modelContainer(modelContainer)
     }
