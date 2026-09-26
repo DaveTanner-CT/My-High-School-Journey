@@ -56,6 +56,32 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+
+            Section("Google Docs") {
+                HStack {
+                    Label("Resume Connection", systemImage: "doc.text.fill")
+                    Spacer()
+                    Text(googleDocsStatusText)
+                        .foregroundStyle(.secondary)
+                }
+
+                if GoogleOAuthService.shared.isConfigured && GoogleOAuthService.shared.isConnected {
+                    Button("Disconnect Google Account", role: .destructive) {
+                        GoogleOAuthService.shared.disconnect()
+                    }
+                }
+
+                if GoogleOAuthService.shared.isConfigured {
+                    Text("The Resume tool can create an editable Google Doc in the student's own Google Drive. Google sign-in happens when the student creates their first document.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Google Docs still needs the one-time OAuth setup for this app build. Until that is added, the Resume button will explain what is missing instead of appearing to do nothing.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Backup") {
                 TextField("Backup email", text: $backupEmail)
                     .keyboardType(.emailAddress)
@@ -112,6 +138,11 @@ struct SettingsView: View {
         } message: {
             Text(backupError ?? "Please try again.")
         }
+    }
+
+    private var googleDocsStatusText: String {
+        guard GoogleOAuthService.shared.isConfigured else { return "Needs Setup" }
+        return GoogleOAuthService.shared.isConnected ? "Connected" : "Ready"
     }
 
     private func createBackup(emailWhenReady: Bool) {

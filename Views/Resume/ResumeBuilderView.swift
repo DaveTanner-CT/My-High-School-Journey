@@ -20,6 +20,7 @@ struct ResumeBuilderView: View {
     @State private var exportError: String?
     @State private var isCreatingPDF = false
     @State private var isCreatingGoogleDoc = false
+    @State private var showGoogleSetupAlert = false
 
     private let sectionOrder = ["experiences", "activities", "athletics", "honors"]
 
@@ -107,7 +108,11 @@ struct ResumeBuilderView: View {
 
             Section {
                 Button {
-                    Task { await createGoogleDoc() }
+                    if GoogleOAuthService.shared.isConfigured {
+                        Task { await createGoogleDoc() }
+                    } else {
+                        showGoogleSetupAlert = true
+                    }
                 } label: {
                     HStack {
                         Label("Create Editable Google Doc", systemImage: "doc.text.fill")
@@ -115,10 +120,18 @@ struct ResumeBuilderView: View {
                         if isCreatingGoogleDoc { ProgressView() }
                     }
                 }
-                .disabled(isCreatingGoogleDoc || includedRecords.isEmpty || !GoogleOAuthService.shared.isConfigured)
+                .disabled(isCreatingGoogleDoc)
 
                 if !GoogleOAuthService.shared.isConfigured {
-                    Label("Google Docs setup is required for this app build.", systemImage: "wrench.and.screwdriver")
+                    Label("Google Docs needs one-time app setup before this button can connect to Google.", systemImage: "wrench.and.screwdriver")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else if GoogleOAuthService.shared.isConnected {
+                    Label("Google account connected", systemImage: "checkmark.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Label("You’ll be asked to sign in to Google the first time you create a document.", systemImage: "person.crop.circle.badge.checkmark")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -159,6 +172,11 @@ struct ResumeBuilderView: View {
             if fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 fullName = profile?.preferredName ?? ""
             }
+        }
+        .alert("Google Docs Setup Needed", isPresented: $showGoogleSetupAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The Google Docs connection has not been configured in this app build yet. Add the Google iOS OAuth client ID and reversed client ID scheme to project.yml, then rebuild the app. The included GOOGLE_DOCS_SETUP.md file has the exact steps.")
         }
         .alert(
             "Couldn’t Create Resume",
