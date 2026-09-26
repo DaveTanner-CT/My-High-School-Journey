@@ -1,11 +1,26 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import MessageUI
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [StudentProfile]
+    @Query private var tilePreferences: [TilePreference]
+    @Query private var journeyMoments: [JourneyMoment]
+    @Query private var customTiles: [CustomTile]
+    @Query private var customTileItems: [CustomTileItem]
+    @Query private var moduleRecords: [ModuleRecord]
+    @Query private var photoAssets: [PhotoAsset]
+
     @AppStorage("appLockEnabled") private var appLockEnabled = false
+    @AppStorage("backupEmail") private var backupEmail = ""
+    @AppStorage("profileHeadshotImageFilename") private var headshotImageFilename = ""
+    @AppStorage("profileHeadshotThumbnailFilename") private var headshotThumbnailFilename = ""
+
+    @State private var backupURL: URL?
+    @State private var showingBackupMail = false
+    @State private var backupError: String?
 
     var body: some View {
         Form {
@@ -36,13 +51,30 @@ struct SettingsView: View {
                     }
                 }
 
-                Text("Your Journey is private by default. App Lock can add an optional four-digit PIN on this device.")
+                Text("Your Journey is private by default. App Lock can add a four-digit PIN and, when available, Face ID or Touch ID on this device.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Data") {
-                Text("Export, backup and iCloud status will be added as dedicated services rather than being embedded in individual screens.")
+            Section("Backup") {
+                TextField("Backup email", text: $backupEmail)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button {
+                    createBackup(emailWhenReady: true)
+                } label: {
+                    Label("Email Backup to Me", systemImage: "envelope.badge")
+                }
+
+                if let backupURL {
+                    ShareLink(item: backupURL) {
+                        Label("Save or Share Latest Backup", systemImage: "square.and.arrow.up")
+                    }
+                }
+
+                Text("The backup includes your Journey data, photos, keepsakes, headshot, tile setup, and resume preferences. App Lock PINs, recovery codes, and Google sign-in tokens are never included. Once emailed, the backup is protected by your email account rather than App Lock.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -59,6 +91,53 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .onAppear {
+            if backupEmail.isEmpty {
+                backupEmail = AppLockService.shared.recoveryEmail ?? ""
+            }
+        }
+        .sheet(isPresented: $showingBackupMail) {
+            if let backupURL {
+                BackupMailView(recipient: backupEmail, backupURL: backupURL)
+            }
+        }
+        .alert(
+            "Couldn’t Create Backup",
+            isPresented: Binding(
+                get: { backupError != nil },
+                set: { if !$0 { backupError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { backupError = nil }
+        } message: {
+            Text(backupError ?? "Please try again.")
+        }
+    }
+
+    private func createBackup(emailWhenReady: Bool) {
+        do {
+            backupURL = try JourneyBackupService.createBackup(
+                profiles: profiles,
+                tilePreferences: tilePreferences,
+                journeyMoments: journeyMoments,
+                customTiles: customTiles,
+                customTileItems: customTileItems,
+                moduleRecords: moduleRecords,
+                photoAssets: photoAssets,
+                headshotImageFilename: headshotImageFilename,
+                headshotThumbnailFilename: headshotThumbnailFilename
+            )
+            backupError = nil
+            if emailWhenReady {
+                if MFMailComposeViewController.canSendMail() {
+                    showingBackupMail = true
+                } else {
+                    backupError = "A backup was created, but Mail is not configured on this device. Use Save or Share Latest Backup to send it with another mail app."
+                }
+            }
+        } catch {
+            backupError = error.localizedDescription
+        }
     }
 }
 

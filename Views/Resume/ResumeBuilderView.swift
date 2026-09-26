@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct ResumeBuilderView: View {
     @Environment(\.modelContext) private var modelContext
@@ -15,8 +16,10 @@ struct ResumeBuilderView: View {
     @AppStorage("profileHeadshotThumbnailFilename") private var headshotThumbnailFilename = ""
 
     @State private var exportURL: URL?
+    @State private var googleDocURL: URL?
     @State private var exportError: String?
     @State private var isCreatingPDF = false
+    @State private var isCreatingGoogleDoc = false
 
     private let sectionOrder = ["experiences", "activities", "athletics", "honors"]
 
@@ -102,16 +105,39 @@ struct ResumeBuilderView: View {
                 Text("Turn an item off here if you want to keep it in your Journey but leave it off this resume and future exports.")
             }
 
-            Section {
+            Section("Create Your Resume") {
+                Button {
+                    Task { await createGoogleDoc() }
+                } label: {
+                    HStack {
+                        Label("Create Editable Google Doc", systemImage: "doc.text.fill")
+                        Spacer()
+                        if isCreatingGoogleDoc { ProgressView() }
+                    }
+                }
+                .disabled(isCreatingGoogleDoc || includedRecords.isEmpty || !GoogleOAuthService.shared.isConfigured)
+
+                if !GoogleOAuthService.shared.isConfigured {
+                    Label("Google Docs setup is required for this app build.", systemImage: "wrench.and.screwdriver")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let googleDocURL {
+                    Link(destination: googleDocURL) {
+                        Label("Open Resume in Google Docs", systemImage: "arrow.up.right.square")
+                    }
+                }
+
+                Divider()
+
                 Button {
                     createPDF()
                 } label: {
                     HStack {
-                        Label("Create Resume PDF", systemImage: "doc.richtext")
+                        Label("Create PDF Copy", systemImage: "doc.richtext")
                         Spacer()
-                        if isCreatingPDF {
-                            ProgressView()
-                        }
+                        if isCreatingPDF { ProgressView() }
                     }
                 }
                 .disabled(isCreatingPDF || includedRecords.isEmpty)
@@ -122,7 +148,7 @@ struct ResumeBuilderView: View {
                     }
                 }
             } footer: {
-                Text("The PDF is created on this device. You decide where it goes next.")
+                Text("Google Docs is the editable working version. The PDF remains available when you are ready to submit or print a finished copy.")
             }
         }
         .navigationTitle("Resume")
@@ -197,6 +223,42 @@ struct ResumeBuilderView: View {
 
     private func sectionIcon(for moduleID: String) -> String {
         ModuleRegistry.module(id: moduleID)?.systemImage ?? "circle.fill"
+    }
+
+    @MainActor
+    private func createGoogleDoc() async {
+        isCreatingGoogleDoc = true
+        googleDocURL = nil
+        defer { isCreatingGoogleDoc = false }
+
+        let request = GoogleDocsResumeRequest(
+            fullName: displayName,
+            email: email,
+            phone: phone,
+            location: location,
+            schoolName: profile?.schoolName ?? "",
+            graduationYear: profile?.graduationYear,
+            records: includedRecords.map {
+                ResumeExportRecord(
+                    moduleID: $0.moduleID,
+                    title: $0.title,
+                    date: $0.recordDate,
+                    category: $0.category,
+                    organization: $0.organization,
+                    role: $0.role,
+                    details: $0.details
+                )
+            }
+        )
+
+        do {
+            googleDocURL = try await GoogleDocsResumeService.createResume(request: request)
+            if let googleDocURL {
+                UIApplication.shared.open(googleDocURL)
+            }
+        } catch {
+            exportError = error.localizedDescription
+        }
     }
 
     private func createPDF() {

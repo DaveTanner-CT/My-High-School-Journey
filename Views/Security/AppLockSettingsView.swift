@@ -4,6 +4,7 @@ struct AppLockSettingsView: View {
     @Environment(\.openURL) private var openURL
 
     @AppStorage("appLockEnabled") private var appLockEnabled = false
+    @AppStorage("biometricUnlockEnabled") private var biometricUnlockEnabled = false
 
     @State private var pin = ""
     @State private var confirmPIN = ""
@@ -112,6 +113,19 @@ struct AppLockSettingsView: View {
             }
 
             Section("Security") {
+                if BiometricAuthService.isAvailable {
+                    Toggle(isOn: $biometricUnlockEnabled) {
+                        Label("Unlock with \(BiometricAuthService.kind.displayName)", systemImage: BiometricAuthService.kind.systemImage)
+                    }
+
+                    Text("Your four-digit PIN remains available as a backup way to unlock the app.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    LabeledContent("Biometric unlock", value: "Not available")
+                        .foregroundStyle(.secondary)
+                }
+
                 Button("Change PIN") {
                     resetSheetFields()
                     showingChangePIN = true
@@ -279,6 +293,7 @@ struct AppLockSettingsView: View {
         do {
             try AppLockService.shared.disable(currentPIN: currentPIN)
             appLockEnabled = false
+            biometricUnlockEnabled = false
             errorMessage = nil
             showingDisable = false
             pin = ""

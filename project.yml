@@ -48,6 +48,13 @@ targets:
         LSRequiresIPhoneOS: true
         UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
+        NSFaceIDUsageDescription: Use Face ID to unlock your private High School Journey.
+        GoogleOAuthClientID: replace-me.apps.googleusercontent.com
+        GoogleOAuthRedirectScheme: com.googleusercontent.apps.replace-me
+        CFBundleURLTypes:
+          - CFBundleURLName: google-oauth
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.replace-me
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
