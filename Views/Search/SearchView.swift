@@ -63,12 +63,27 @@ struct SearchView: View {
         }
     }
 
+    private var matchingTrustedResources: [TrustedResource] {
+        guard !normalizedQuery.isEmpty, enabledModuleIDs.contains("resources") else { return [] }
+        return TrustedResourceCatalog.resources.filter { resource in
+            [
+                resource.organization,
+                resource.title,
+                resource.description,
+                resource.category.rawValue,
+                resource.resourceType,
+                resource.audience
+            ].contains { $0.localizedCaseInsensitiveContains(normalizedQuery) }
+        }
+    }
+
     private var hasResults: Bool {
         !matchingMoments.isEmpty ||
         !matchingModuleRecords.isEmpty ||
         !matchingCustomItems.isEmpty ||
         !matchingModules.isEmpty ||
-        !matchingCustomTiles.isEmpty
+        !matchingCustomTiles.isEmpty ||
+        !matchingTrustedResources.isEmpty
     }
 
     var body: some View {
@@ -77,7 +92,7 @@ struct SearchView: View {
                 ContentUnavailableView {
                     Label("Search My Journey", systemImage: "magnifyingglass")
                 } description: {
-                    Text("Find Journey moments, activities, athletics, honors, experiences, people, goals, college visits, recruiting updates, custom collections, and enabled parts of the app.")
+                    Text("Find Journey moments, activities, athletics, honors, experiences, people, goals, college visits, recruiting updates, trusted resources, custom collections, and enabled parts of the app.")
                 }
             } else if !hasResults {
                 ContentUnavailableView {
@@ -160,6 +175,35 @@ struct SearchView: View {
                                         }
                                         .padding(.vertical, 3)
                                     }
+                                }
+                            }
+                        }
+                    }
+
+
+                    if !matchingTrustedResources.isEmpty {
+                        Section("Trusted Resources") {
+                            ForEach(matchingTrustedResources) { resource in
+                                Link(destination: resource.url) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(spacing: 6) {
+                                            Text(resource.title)
+                                                .font(.headline)
+                                            if resource.officialSource {
+                                                Image(systemName: "checkmark.seal.fill")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.tint)
+                                            }
+                                        }
+                                        Text("\(resource.organization) • \(resource.category.rawValue)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text(resource.description)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    .padding(.vertical, 3)
                                 }
                             }
                         }
