@@ -14,7 +14,8 @@ struct TrustedResourcesView: View {
                 resource.description,
                 resource.category.rawValue,
                 resource.resourceType,
-                resource.audience
+                resource.audience,
+                resource.accessNote ?? ""
             ].contains { $0.localizedCaseInsensitiveContains(query) }
             return matchesCategory && matchesSearch
         }
@@ -135,6 +136,12 @@ struct TrustedResourcesView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+                if let accessNote = resource.accessNote {
+                    Label(accessNote, systemImage: "person.crop.circle.badge.checkmark")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Text("Verified \(resource.lastVerified)")
                     .font(.caption2)

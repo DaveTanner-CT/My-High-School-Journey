@@ -5,6 +5,7 @@ enum TrustedResourceCategory: String, CaseIterable, Identifiable {
     case financialAid = "Financial Aid"
     case athletics = "Athletics"
     case testing = "Testing"
+    case testPractice = "Test Practice"
     case careers = "Careers"
     case apprenticeships = "Apprenticeships"
     case service = "Service"
@@ -17,6 +18,7 @@ enum TrustedResourceCategory: String, CaseIterable, Identifiable {
         case .financialAid: return "dollarsign.circle"
         case .athletics: return "figure.run"
         case .testing: return "pencil.and.list.clipboard"
+        case .testPractice: return "checklist"
         case .careers: return "briefcase"
         case .apprenticeships: return "hammer"
         case .service: return "heart.hand"
@@ -35,6 +37,33 @@ struct TrustedResource: Identifiable, Hashable {
     let audience: String
     let officialSource: Bool
     let lastVerified: String
+    let accessNote: String?
+
+    init(
+        id: String,
+        organization: String,
+        title: String,
+        description: String,
+        url: URL,
+        category: TrustedResourceCategory,
+        resourceType: String,
+        audience: String,
+        officialSource: Bool,
+        lastVerified: String,
+        accessNote: String? = nil
+    ) {
+        self.id = id
+        self.organization = organization
+        self.title = title
+        self.description = description
+        self.url = url
+        self.category = category
+        self.resourceType = resourceType
+        self.audience = audience
+        self.officialSource = officialSource
+        self.lastVerified = lastVerified
+        self.accessNote = accessNote
+    }
 }
 
 enum TrustedResourceCatalog {
@@ -158,6 +187,95 @@ enum TrustedResourceCatalog {
             audience: "College-bound students",
             officialSource: true,
             lastVerified: "September 2026"
+        ),
+        TrustedResource(
+            id: "sat-official-practice",
+            organization: "College Board",
+            title: "Official SAT Practice Tests",
+            description: "Free official SAT practice, including full-length practice tests and answer explanations. College Board recommends Bluebook for the closest digital test experience.",
+            url: URL(string: "https://satsuite.collegeboard.org/practice/practice-tests")!,
+            category: .testPractice,
+            resourceType: "SAT practice tests",
+            audience: "Students preparing for the SAT",
+            officialSource: true,
+            lastVerified: "September 2026"
+        ),
+        TrustedResource(
+            id: "act-official-practice",
+            organization: "ACT",
+            title: "Official ACT Practice Tests",
+            description: "Free official ACT practice with full-length tests, sample questions, scoring information, and section-by-section practice.",
+            url: URL(string: "https://www.act.org/content/act/en/products-and-services/the-act/test-preparation/free-act-test-prep.html")!,
+            category: .testPractice,
+            resourceType: "ACT practice tests",
+            audience: "Students preparing for the ACT",
+            officialSource: true,
+            lastVerified: "September 2026"
+        ),
+        TrustedResource(
+            id: "khan-sat-practice",
+            organization: "Khan Academy",
+            title: "Official Digital SAT Prep",
+            description: "Free SAT lessons, practice questions, quizzes, and skill-building resources developed in partnership with College Board.",
+            url: URL(string: "https://www.khanacademy.org/digital-sat")!,
+            category: .testPractice,
+            resourceType: "SAT practice",
+            audience: "Students preparing for the SAT",
+            officialSource: false,
+            lastVerified: "September 2026",
+            accessNote: "Free. You can view practice without an account, but an account is useful for saving and tracking your progress."
+        ),
+        TrustedResource(
+            id: "princeton-sat-practice",
+            organization: "The Princeton Review",
+            title: "Free SAT Practice Test",
+            description: "A free full-length SAT practice test with an online testing experience and score report.",
+            url: URL(string: "https://www.princetonreview.com/college/free-sat-practice-test")!,
+            category: .testPractice,
+            resourceType: "SAT practice test",
+            audience: "Students preparing for the SAT",
+            officialSource: false,
+            lastVerified: "September 2026",
+            accessNote: "Free. Account setup or registration is required to access the practice test."
+        ),
+        TrustedResource(
+            id: "princeton-act-practice",
+            organization: "The Princeton Review",
+            title: "Free ACT Practice Test",
+            description: "A free ACT practice test and related practice resources designed to mirror the current ACT experience.",
+            url: URL(string: "https://www.princetonreview.com/k12/free-act-practice-test")!,
+            category: .testPractice,
+            resourceType: "ACT practice test",
+            audience: "Students preparing for the ACT",
+            officialSource: false,
+            lastVerified: "September 2026",
+            accessNote: "Free. Account setup or registration is required to access the practice test."
+        ),
+        TrustedResource(
+            id: "kaplan-sat-practice",
+            organization: "Kaplan Test Prep",
+            title: "Free Digital SAT Practice Test",
+            description: "A free digital SAT practice test with score reporting, answer explanations, and additional practice resources.",
+            url: URL(string: "https://www.kaptest.com/sat/free/sat-practice")!,
+            category: .testPractice,
+            resourceType: "SAT practice test",
+            audience: "Students preparing for the SAT",
+            officialSource: false,
+            lastVerified: "September 2026",
+            accessNote: "Free. Account setup or registration is required to access the practice test."
+        ),
+        TrustedResource(
+            id: "kaplan-act-practice",
+            organization: "Kaplan Test Prep",
+            title: "Free ACT Practice",
+            description: "Free ACT practice featuring official ACT questions, a half-length practice test, score insights, and additional practice options.",
+            url: URL(string: "https://www.kaptest.com/act/free/act-free-practice-test")!,
+            category: .testPractice,
+            resourceType: "ACT practice",
+            audience: "Students preparing for the ACT",
+            officialSource: false,
+            lastVerified: "September 2026",
+            accessNote: "Free. Account setup or registration is required to access the practice experience."
         ),
         TrustedResource(
             id: "bls-ooh",
