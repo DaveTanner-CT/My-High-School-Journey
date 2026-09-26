@@ -5,12 +5,21 @@ struct CustomTileCardView: View {
     var itemCount: Int? = nil
     var displayMode: HomeTileDisplayMode = .compact
 
+    private var accentColor: Color {
+        switch tile.tileType {
+        case "resource": return .green
+        case "shortcut": return .indigo
+        default: return .purple
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: displayMode == .compact ? 8 : 12) {
             HStack(alignment: .top) {
                 Image(systemName: tile.systemImage)
                     .font(.title2)
                     .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(accentColor)
 
                 Spacer(minLength: 8)
 
@@ -20,7 +29,7 @@ struct CustomTileCardView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
-                        .background(.primary.opacity(0.06), in: Capsule())
+                        .background(accentColor.opacity(0.10), in: Capsule())
                 }
             }
 
@@ -40,10 +49,17 @@ struct CustomTileCardView: View {
         .padding(displayMode == .compact ? 14 : 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(CustomTileShapeModifier(displayMode: displayMode))
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.thinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(accentColor.opacity(0.055))
+                }
+        }
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.quaternary, lineWidth: 1)
+                .stroke(accentColor.opacity(0.42), lineWidth: 1.5)
         }
     }
 

@@ -5,6 +5,24 @@ struct ModuleTileView: View {
     var statusText: String? = nil
     var displayMode: HomeTileDisplayMode = .compact
 
+    private var accentColor: Color {
+        switch module.id {
+        case "journey": return .indigo
+        case "activities": return .blue
+        case "athletics": return .green
+        case "honors": return .orange
+        case "experiences": return .teal
+        case "people": return .purple
+        case "goals": return .pink
+        case "reflections": return .mint
+        case "collegeVisits": return .cyan
+        case "recruiting": return .orange
+        case "resume": return .indigo
+        case "resources": return .green
+        default: return .blue
+        }
+    }
+
     var body: some View {
         tileCard
     }
@@ -15,6 +33,7 @@ struct ModuleTileView: View {
                 Image(systemName: module.systemImage)
                     .font(.title2)
                     .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(accentColor)
 
                 Spacer(minLength: 8)
 
@@ -24,7 +43,7 @@ struct ModuleTileView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 4)
-                        .background(.primary.opacity(0.06), in: Capsule())
+                        .background(accentColor.opacity(0.10), in: Capsule())
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                 }
@@ -46,10 +65,17 @@ struct ModuleTileView: View {
         .padding(displayMode == .compact ? 14 : 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(TileShapeModifier(displayMode: displayMode))
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.thinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(accentColor.opacity(0.055))
+                }
+        }
         .overlay {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.quaternary, lineWidth: 1)
+                .stroke(accentColor.opacity(0.42), lineWidth: 1.5)
         }
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }

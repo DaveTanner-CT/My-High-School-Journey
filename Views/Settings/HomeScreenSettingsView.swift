@@ -57,7 +57,7 @@ struct HomeScreenSettingsView: View {
             } header: {
                 Text("Tiles")
             } footer: {
-                Text("Turn tiles on or off and drag them into the order you want. You can also press and drag tiles directly on Home in either Compact or Wide view. Custom tiles can also be removed.")
+                Text("Turn tiles on or off and drag them into the order you want. You can also use Reorder Tiles on Home in either Compact or Wide view. Custom tiles can also be removed.")
             }
 
             Section {

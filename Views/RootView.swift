@@ -3,13 +3,68 @@ import SwiftData
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+
+    @AppStorage("appLockEnabled") private var appLockEnabled = false
 
     @State private var selectedTab: RootTab = .home
     @State private var lastContentTab: RootTab = .home
     @State private var showingQuickAdd = false
     @State private var bootstrapError: String?
+    @State private var isUnlocked = false
 
     var body: some View {
+        Group {
+            if shouldShowLock {
+                AppLockView {
+                    isUnlocked = true
+                }
+            } else {
+                mainTabs
+            }
+        }
+        .onAppear {
+            if !appLockEnabled || !AppLockService.shared.isEnabled {
+                isUnlocked = true
+            }
+        }
+        .onChange(of: appLockEnabled) { _, newValue in
+            if newValue {
+                // The student just enabled App Lock from inside the app,
+                // so keep the current session open. It will lock the next
+                // time the app leaves the foreground.
+                isUnlocked = true
+            } else {
+                isUnlocked = true
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background && appLockEnabled && AppLockService.shared.isEnabled {
+                isUnlocked = false
+            }
+        }
+        .task {
+            do {
+                try BootstrapService.prepare(modelContext: modelContext)
+            } catch {
+                bootstrapError = error.localizedDescription
+            }
+        }
+        .alert("High School Journey couldn't finish setup", isPresented: Binding(
+            get: { bootstrapError != nil },
+            set: { if !$0 { bootstrapError = nil } }
+        )) {
+            Button("OK", role: .cancel) { bootstrapError = nil }
+        } message: {
+            Text(bootstrapError ?? "Unknown error")
+        }
+    }
+
+    private var shouldShowLock: Bool {
+        appLockEnabled && AppLockService.shared.isEnabled && !isUnlocked
+    }
+
+    private var mainTabs: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 HomeView()
@@ -59,21 +114,6 @@ struct RootView: View {
         }
         .sheet(isPresented: $showingQuickAdd) {
             QuickAddView()
-        }
-        .task {
-            do {
-                try BootstrapService.prepare(modelContext: modelContext)
-            } catch {
-                bootstrapError = error.localizedDescription
-            }
-        }
-        .alert("High School Journey couldn't finish setup", isPresented: Binding(
-            get: { bootstrapError != nil },
-            set: { if !$0 { bootstrapError = nil } }
-        )) {
-            Button("OK", role: .cancel) { bootstrapError = nil }
-        } message: {
-            Text(bootstrapError ?? "Unknown error")
         }
     }
 }
