@@ -105,7 +105,7 @@ struct ResumeBuilderView: View {
                 Text("Turn an item off here if you want to keep it in your Journey but leave it off this resume and future exports.")
             }
 
-            Section("Create Your Resume") {
+            Section {
                 Button {
                     Task { await createGoogleDoc() }
                 } label: {
@@ -147,6 +147,8 @@ struct ResumeBuilderView: View {
                         Label("Share Resume PDF", systemImage: "square.and.arrow.up")
                     }
                 }
+            } header: {
+                Text("Create Your Resume")
             } footer: {
                 Text("Google Docs is the editable working version. The PDF remains available when you are ready to submit or print a finished copy.")
             }
@@ -254,7 +256,7 @@ struct ResumeBuilderView: View {
         do {
             googleDocURL = try await GoogleDocsResumeService.createResume(request: request)
             if let googleDocURL {
-                UIApplication.shared.open(googleDocURL)
+                _ = await UIApplication.shared.open(googleDocURL)
             }
         } catch {
             exportError = error.localizedDescription
